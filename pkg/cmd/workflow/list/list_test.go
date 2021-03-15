@@ -115,7 +115,7 @@ func TestListRun(t *testing.T) {
 			ID:    451,
 		},
 	}
-	payload := WorkflowsPayload{Workflows: workflows}
+	payload := shared.WorkflowsPayload{Workflows: workflows}
 
 	tests := []struct {
 		name       string
@@ -157,12 +157,12 @@ func TestListRun(t *testing.T) {
 				}
 				reg.Register(
 					httpmock.REST("GET", "repos/OWNER/REPO/actions/workflows"),
-					httpmock.JSONResponse(WorkflowsPayload{
+					httpmock.JSONResponse(shared.WorkflowsPayload{
 						Workflows: workflows[0:100],
 					}))
 				reg.Register(
 					httpmock.REST("GET", "repos/OWNER/REPO/actions/workflows"),
-					httpmock.JSONResponse(WorkflowsPayload{
+					httpmock.JSONResponse(shared.WorkflowsPayload{
 						Workflows: workflows[100:],
 					}))
 			},
@@ -177,7 +177,7 @@ func TestListRun(t *testing.T) {
 			stubs: func(reg *httpmock.Registry) {
 				reg.Register(
 					httpmock.REST("GET", "repos/OWNER/REPO/actions/workflows"),
-					httpmock.JSONResponse(WorkflowsPayload{}),
+					httpmock.JSONResponse(shared.WorkflowsPayload{}),
 				)
 			},
 			wantOut: "",
@@ -191,7 +191,7 @@ func TestListRun(t *testing.T) {
 			stubs: func(reg *httpmock.Registry) {
 				reg.Register(
 					httpmock.REST("GET", "repos/OWNER/REPO/actions/workflows"),
-					httpmock.JSONResponse(WorkflowsPayload{}),
+					httpmock.JSONResponse(shared.WorkflowsPayload{}),
 				)
 			},
 			wantOut:    "",

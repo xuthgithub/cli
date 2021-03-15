@@ -69,8 +69,6 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 }
 
 func runView(opts *ViewOptions) error {
-	// TODO replace this with just the yaml view
-
 	workflowID := opts.WorkflowID
 	var workflow *shared.Workflow
 
