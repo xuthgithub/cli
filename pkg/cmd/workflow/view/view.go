@@ -63,6 +63,11 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 
 			// TODO support --web
 
+			// TODO support --branch?
+			// Is this worth supporting in the first pass? I can't, for example, use
+			// this tool to view the workflow file for my prautomation branch without
+			// such support.
+
 			if runF != nil {
 				return runF(opts)
 			}
@@ -101,13 +106,10 @@ func runView(opts *ViewOptions) error {
 		}
 	}
 
-	fmt.Printf("DBG %#v\n", workflow)
-
-	// TODO figure out how to get the yaml at default branch of remote
-	// TODO lay out yaml with syntax highlighting
-	// TODO consider attempting to figure out from what project a workflow originates
-
-	yaml := "# TODO YAML"
+	yaml, err := getWorkflowContent(client, repo, workflow)
+	if err != nil {
+		return fmt.Errorf("could not get workflow file content: %w", err)
+	}
 
 	theme := opts.IO.DetectTerminalTheme()
 	markdownStyle := markdown.GetStyle(theme)
@@ -117,7 +119,13 @@ func runView(opts *ViewOptions) error {
 	defer opts.IO.StopPager()
 
 	if !opts.Raw {
-		// TODO print little header
+		cs := opts.IO.ColorScheme()
+		out := opts.IO.Out
+
+		fmt.Fprintln(out, cs.Bold(workflow.Name))
+		fmt.Fprintf(out, "%s %s", cs.Gray(workflow.Path), cs.Cyanf("%d", workflow.ID))
+		// TODO any more metadata?
+
 		codeBlock := fmt.Sprintf("```yaml\n%s\n```", yaml)
 		// TODO fix indentation
 		rendered, err := markdown.Render(codeBlock, markdownStyle, "")
