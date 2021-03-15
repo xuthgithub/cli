@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
+	"github.com/cli/cli/api"
 	"github.com/cli/cli/internal/ghrepo"
 	"github.com/cli/cli/pkg/cmd/workflow/shared"
 	"github.com/cli/cli/pkg/cmdutil"
 	"github.com/cli/cli/pkg/iostreams"
 	"github.com/cli/cli/pkg/markdown"
+	"github.com/cli/cli/pkg/prompt"
 	"github.com/spf13/cobra"
 )
 
@@ -58,6 +61,8 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 				opts.Prompt = true
 			}
 
+			// TODO support --web
+
 			if runF != nil {
 				return runF(opts)
 			}
@@ -69,23 +74,38 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 }
 
 func runView(opts *ViewOptions) error {
-	workflowID := opts.WorkflowID
+	c, err := opts.HttpClient()
+	if err != nil {
+		return fmt.Errorf("could not build http client: %w", err)
+	}
+	client := api.NewClientFromHTTP(c)
+
+	repo, err := opts.BaseRepo()
+	if err != nil {
+		return fmt.Errorf("could not determine base repo: %w", err)
+	}
+
 	var workflow *shared.Workflow
 
-	fmt.Printf("DBG %#v\n", workflowID)
-	fmt.Printf("DBG %#v\n", workflow)
-
 	if opts.Prompt {
-		// TODO grab workflows
-		// TODO prompt
+		workflow, err = promptWorkflows(client, repo)
+		if err != nil {
+			return err
+		}
 	}
 
 	if workflow == nil {
-		// TODO REST GET workflowID
+		workflow, err = getWorkflow(client, repo, opts.WorkflowID)
+		if err != nil {
+			return err
+		}
 	}
+
+	fmt.Printf("DBG %#v\n", workflow)
 
 	// TODO figure out how to get the yaml at default branch of remote
 	// TODO lay out yaml with syntax highlighting
+	// TODO consider attempting to figure out from what project a workflow originates
 
 	yaml := "# TODO YAML"
 
@@ -118,4 +138,42 @@ func runView(opts *ViewOptions) error {
 	}
 
 	return nil
+}
+
+func promptWorkflows(client *api.Client, repo ghrepo.Interface) (*shared.Workflow, error) {
+	workflows, err := shared.GetWorkflows(client, repo, 10)
+	if len(workflows) == 0 {
+		err = errors.New("no workflows are enabled")
+	}
+
+	if err != nil {
+		var httpErr api.HTTPError
+		if errors.As(err, &httpErr) && httpErr.StatusCode == 404 {
+			err = errors.New("no workflows are enabled")
+		}
+
+		return nil, fmt.Errorf("could not fetch workflows for %s: %w", ghrepo.FullName(repo), err)
+	}
+
+	filtered := []shared.Workflow{}
+	candidates := []string{}
+	for _, workflow := range workflows {
+		if !workflow.Disabled() {
+			filtered = append(filtered, workflow)
+			candidates = append(candidates, workflow.Name)
+		}
+	}
+
+	var selected int
+
+	err = prompt.SurveyAskOne(&survey.Select{
+		Message:  "Select a workflow",
+		Options:  candidates,
+		PageSize: 10,
+	}, &selected)
+	if err != nil {
+		return nil, err
+	}
+
+	return &filtered[selected], nil
 }
