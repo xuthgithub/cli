@@ -6,6 +6,7 @@ import (
 
 	"github.com/cli/cli/api"
 	"github.com/cli/cli/internal/ghrepo"
+	"github.com/cli/cli/pkg/cmd/workflow/shared"
 	"github.com/cli/cli/pkg/cmdutil"
 	"github.com/cli/cli/pkg/iostreams"
 	"github.com/cli/cli/utils"
@@ -14,9 +15,6 @@ import (
 
 const (
 	defaultLimit = 10
-
-	Active           WorkflowState = "active"
-	DisabledManually WorkflowState = "disabled_manually"
 )
 
 type ListOptions struct {
@@ -108,30 +106,18 @@ func listRun(opts *ListOptions) error {
 	return tp.Render()
 }
 
-type WorkflowState string
-
-type Workflow struct {
-	Name  string
-	ID    int
-	State WorkflowState
-}
-
-func (w *Workflow) Disabled() bool {
-	return w.State != Active
-}
-
 type WorkflowsPayload struct {
-	Workflows []Workflow
+	Workflows []shared.Workflow
 }
 
-func getWorkflows(client *api.Client, repo ghrepo.Interface, limit int) ([]Workflow, error) {
+func getWorkflows(client *api.Client, repo ghrepo.Interface, limit int) ([]shared.Workflow, error) {
 	perPage := limit
 	page := 1
 	if limit > 100 {
 		perPage = 100
 	}
 
-	workflows := []Workflow{}
+	workflows := []shared.Workflow{}
 
 	for len(workflows) < limit {
 		var result WorkflowsPayload

@@ -2,7 +2,6 @@ package view
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/MakeNowJust/heredoc"
@@ -63,35 +62,7 @@ func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Comman
 }
 
 func runView(opts *ViewOptions) error {
-	// TODO
-
-	mock := heredoc.Doc(`
-		%s %s
-		%s
-
-		%s
-		%s add even more tests        actions       pull_request 1m ago %s
-		%s start on workflow comma... workflow-view push         2h ago %s
-		%s add stubs                  workflow-list push         2d ago %s
-
-		To see more runs for this workflow, try: gh run list -w"goreleaser"
-		To see the YAML for this workflow, try: gh workflow view "goreleaser" --yaml
-  `)
-
-	cs := opts.IO.ColorScheme()
-
-	fmt.Fprintf(opts.IO.Out, mock,
-		cs.Bold("goreleaser"),
-		cs.Cyan("447058545"),
-		cs.Gray("releases.yml"),
-		cs.Bold("Recent Runs"),
-		cs.Yellow("-"),
-		cs.Cyan("647332420"),
-		cs.Green("✓"),
-		cs.Cyan("647332419"),
-		cs.Red("X"),
-		cs.Cyan("647332418"),
-	)
+	// TODO replace this with just the yaml view
 
 	return nil
 }
